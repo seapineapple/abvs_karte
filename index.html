@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Indoor Map Example</title>
+
+    <!-- link rel="stylesheet" href="../leaflet.css" / -->
+
+    <!--[if lte IE 8
+      ]><link rel="stylesheet" href="libs/leaflet.ie.css"
+    /><![endif]-->
+
+    <style type="text/css">
+      body {
+        padding: 0;
+        margin: 0;
+      }
+
+      html,
+      body,
+      #map {
+        height: 100%;
+      }
+
+      #content {
+        display: flex;
+        flex-direction: row;
+        width: 100vw;
+        height: 100vh;
+      }
+      #data {
+        flex: 20;
+      }
+      #json {
+        white-space: pre-wrap;
+        font-family: monospace;
+        border: 1px solid #ccc;
+        padding: 10px;
+      }
+
+      #map {
+        flex: 80;
+      }
+
+      .info {
+        width: 150px;
+        padding: 6px 8px;
+        font: 14px/16px Arial, Helvetica, sans-serif;
+        background: white;
+        background: rgba(255, 255, 255, 1);
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+      }
+    </style>
+
+    <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-indoor@1.0.0/dist/leaflet-indoor.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2.5.0/src/easy-button.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2.5.0/src/easy-button.js"></script> -->
+
+    <!-- Basic map library - Leaflet and plugins -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.css"
+    >
+    <script
+      src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.js"
+    ></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/leaflet-indoor@1.0.3/leaflet-indoor.min.js"></script> -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@1.3.0/src/easy-button.css">
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@1.3.0/src/easy-button.js"></script> -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2.4.0/src/easy-button.min.css"
+    >
+    <script
+      src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2.4.0/src/easy-button.min.js"
+    ></script>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/osmtogeojson@3.0.0-beta.5/osmtogeojson.min.js"
+    ></script>
+  </head>
+  <body>
+    <!-- Core logic -->
+    <script type="text/JavaScript">
+      function prepareMap() {
+        let osm = new L.TileLayer(
+          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          {
+            maxZoom: 22,
+            attribution: "Map data &copy; OpenStreetMap contributors",
+          },
+        );
+        let map = new L.Map("map", {
+          //   layers: [osm],
+          //   center: new L.LatLng(57.076142, 24.326563),
+          //   zoom: 18,
+        }).setView([57.076142, 24.326563], 22);
+
+        L.easyButton("fa-school", function () {
+          map.setView([57.076142, 24.326563], 22);
+        }).addTo(map);
+
+        L.tileLayer(
+          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          {
+            maxZoom: 19,
+            attribution:
+              '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          },
+        ).addTo(map);
+
+        return { osm, map };
+      }
+
+      function mapData(data, mapCtx) {
+        const styles = {
+          room: {
+            color: "black",
+            fillColor: "white",
+            fillOpacity: 1,
+          },
+          level: {
+            color: "black",
+            fillColor: "white",
+            fillOpacity: 1,
+          },
+        };
+
+        const layerMap = data["features"]
+          .filter((feature) =>
+            Object.keys(styles).includes(feature.properties.indoor) ||
+            console.log("Excluded:", feature)
+          )
+          .reduce((acc, feature) => {
+            const key = feature.properties.level;
+            const value = L.geoJSON(feature, {
+              style: styles[feature.properties.indoor],
+            });
+
+            const name = feature.properties.name ??
+                feature.properties.description ??
+                feature.properties.indoor ?? "No name";
+
+            if (feature.properties.indoor === "room") {
+              var opt = new Option(name, feature.id, false, false);
+              $("#node-select").append(opt);
+
+              value.on("click", function (evt) {
+                // Access the feature's properties
+                var featureId = feature.id;
+                console.log($("#node-select").val());
+                $("#node-select")
+                  .val(featureId)
+                  .trigger("change")
+                  .trigger("select2:select");
+              });
+            }
+
+            if (!acc[key]) {
+              acc[key] = L.layerGroup();
+              acc[key].addTo(mapCtx.map);
+            }
+            acc[key].addLayer(value);
+            value.bindTooltip(name);
+
+            return acc;
+          }, {});
+
+        var layerControl = L.control.layers(layerMap).addTo(mapCtx.map);
+
+        console.log("layerMap:", layerMap);
+      }
+
+      $("document").ready(function () {
+        // Create the map
+
+        $("#node-select").select2({
+          allowClear: true,
+          placeholder: "Izvēlieties telpu",
+        });
+
+        let mapCtx = prepareMap();
+
+        // function clearPolygons() {
+        //     polygons.forEach((polygon) => {
+        //         map.removeLayer(polygon);
+        //     });
+        //     polygons = [];
+        // }
+
+        let bbox =
+          "(57.07580000000000,24.32300080000000,57.076623600000000,24.32779130000000)";
+        // "(57.07581081301215,24.32309746742249,57.07609655208826,24.32910561561585)";
+        fetch(
+          "https://overpass-api.de/api/interpreter",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/x-www-form-urlencoded; charset=UTF-8",
+            },
+            body: "data=" + encodeURIComponent(
+              `[out:json][timeout:25];
+          (
+            way["indoor"]${bbox};
+              way["building"="school"]${bbox};
+          );
+          out geom;`,
+            ),
+            //                         body: "data=" + encodeURIComponent(
+            //                             `[out:json][timeout:25];
+            // (
+            // 	way["indoor"](57.07581081301215,24.32309746742249,57.07609655208826,24.32910561561585);
+            //     way["building"="school"](57.07581081301215,24.32309746742249,57.07609655208826,24.32910561561585);
+            // );
+            // out geom;`),
+          },
+        )
+          .then((response) => response.json())
+          .then((data) => osmtogeojson(data))
+          .then((data) => mapData(data, mapCtx))
+          .catch((error) => console.error("Error:", error));
+
+        // $.get(url, function (jsonData) {
+        //     console.log("jsonData", jsonData);
+        //     let geoJSON = osmtogeojson(jsonData);
+        //     console.log("geoJSON", geoJSON);
+
+        //     let geoNodes = L.geoJSON(geoJSON, {
+        //         filter: (feature) => {
+        //             return feature.geometry.type ===
+        //                     "Polygon" &&
+        //                 feature.properties.indoor ==
+        //                     "room";
+        //         },
+        //         style: function (feature) {
+        //             switch (
+        //                 feature.properties.building
+        //             ) {
+        //                 case "school":
+        //                     return { color: "#ff0000" };
+        //                 default:
+        //                     return { color: "#0000ff" };
+        //             }
+        //         },
+        //         onEachFeature: function (
+        //             feature,
+        //             layer,
+        //         ) {
+        //             layer.on("click", function (evt) {
+        //                 // Access the feature's properties
+        //                 var featureId = feature.id;
+        //                 console.log(
+        //                     $("#node-select").val(),
+        //                 );
+        //                 $("#node-select")
+        //                     .val(featureId)
+        //                     .trigger("change")
+        //                     .trigger("select2:select");
+        //             });
+        //         },
+        //     }).addTo(map);
+
+        //     $("#node-select").select2({
+        //         allowClear: true,
+        //         placeholder: "Izvēlieties telpu",
+        //         data: geoJSON.features.map((item) => {
+        //             return {
+        //                 id: item.id,
+        //                 text: // ${item.id}
+        //                     `${
+        //                         item.properties.name ??
+        //                             item.properties
+        //                                 .description ??
+        //                             item.properties
+        //                                 .indoor ??
+        //                             "?"
+        //                     }`,
+        //                 info: item,
+        //             };
+        //         }),
+        //     }).val(null).trigger("change");
+
+        //     function handleGeoJSONSelect(e) {
+        //         let selections =
+        //             $(e.target).select2("data") || [];
+
+        //         let ids = selections.map((s) => s.id);
+        //         let displayData = selections.map((s) =>
+        //             s.info
+        //         );
+        //         $("#json").text(
+        //             JSON.stringify(
+        //                 displayData,
+        //                 null,
+        //                 4,
+        //             ),
+        //         );
+        //         // geoNodes.clearLayers();
+        //         geoNodes.eachLayer(function (layer) {
+        //             //   console.log("Layer:", layer.feature.id, layer);
+        //             if (
+        //                 ids.includes(layer.feature.id)
+        //             ) {
+        //                 layer.setStyle({
+        //                     color: "#ff0000",
+        //                 });
+        //             } else {
+        //                 layer.setStyle({
+        //                     color: "#00ff00",
+        //                 });
+        //             }
+        //         });
+        //         // L.geoJSON(geojsonFeature).addTo(geoNodes)
+        //         console.log("Selected options:", ids);
+        //     }
+
+        //     $("#node-select").on(
+        //         "select2:select",
+        //         // "change",
+        //         // handleSelect,
+        //         handleGeoJSONSelect,
+        //     );
+
+        //     console.log("Document ready");
+        // });
+      });
+    </script>
+    <div id="content" style="background-color: red">
+      <div id="data" style="background-color: lightgreen">
+        <div style="background-color: darkgreen">
+          <select id="node-select" style="width: 100%"></select>
+        </div>
+        <div id="json" style="background-color: aqua"></div>
+      </div>
+      <div id="map" style="background-color: coral"></div>
+    </div>
+  </body>
+</html>
