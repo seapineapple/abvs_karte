@@ -1,3 +1,7 @@
+function levelName(level) {
+    return `${Number(level) + 1}. stāvs`;
+}
+
 function prepareMap() {
     let osm = new L.TileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -53,6 +57,13 @@ const styles = {
     },
 };
 
+var customIcon = L.icon({
+    iconUrl:"img/room_class.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
+
 function mapData(data, mapCtx) {
     const layerMap = data["features"]
         .filter((feature) =>
@@ -61,9 +72,12 @@ function mapData(data, mapCtx) {
         )
         .sort((a, b) => a.properties.indoor.localeCompare(b.properties.indoor))
         .reduce((acc, feature) => {
-            const key = feature.properties.level;
+            const key = levelName(feature.properties.level);
             const value = L.geoJSON(feature, {
                 style: styles[feature.properties.indoor],
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng, {icon: customIcon});
+                },
             });
 
             const name = feature.properties.name ??
@@ -75,10 +89,9 @@ function mapData(data, mapCtx) {
                 opt.dataset.description = feature.properties?.description || "Apraksts nav norādīts!";
                 opt.dataset.level = feature.properties.level;
 
-                let optLabel = feature.properties.level + " līmenis";
-                var optgroup = $("#node-select optgroup[label='" + optLabel + "']");
+                var optgroup = $("#node-select optgroup[label='" + key + "']");
                 if (!optgroup.length) {
-                    optgroup = $("<optgroup>").attr("label", optLabel).appendTo("#node-select");
+                    optgroup = $("<optgroup>").attr("label", key).appendTo("#node-select");
                 }
                 optgroup.append(opt);
 
@@ -113,12 +126,13 @@ function mapData(data, mapCtx) {
     L.control.layers(layerMap, {}, { collapsed: false }).addTo(mapCtx.map);
 }
 
+
 function handleGeoJSONSelect(e, mapCtx) {
     let selection =
         ($(e.target).select2("data") || []).shift();
 
     if (selection) {
-        let level = selection?.element?.dataset?.level;
+        let level = levelName(selection?.element?.dataset?.level);
         Object.entries(mapCtx.layerMap).forEach(([l, layerGroup]) => {
             if (l === level) {
                 mapCtx.map.addLayer(layerGroup);
@@ -176,8 +190,8 @@ function initMap() {
     );
 
     let bbox =
-        "(57.07580000000000,24.32300080000000,57.076623600000000,24.32779130000000)";
-    // "(57.07581081301215,24.32309746742249,57.07609655208826,24.32910561561585)";
+        "(57.075390947519935,24.324722848528037,57.076860455954716,24.328135102582106)";
+
     fetch(
         "https://overpass-api.de/api/interpreter",
         {
@@ -194,121 +208,10 @@ function initMap() {
       );
       out geom;`,
             ),
-            //                         body: "data=" + encodeURIComponent(
-            //                             `[out:json][timeout:25];
-            // (
-            // 	way["indoor"](57.07581081301215,24.32309746742249,57.07609655208826,24.32910561561585);
-            //     way["building"="school"](57.07581081301215,24.32309746742249,57.07609655208826,24.32910561561585);
-            // );
-            // out geom;`),
         },
     )
         .then((response) => response.json())
         .then((data) => osmtogeojson(data))
         .then((data) => mapData(data, mapCtx))
         .catch((error) => console.error("Error:", error));
-
-    // $.get(url, function (jsonData) {
-    //     console.log("jsonData", jsonData);
-    //     let geoJSON = osmtogeojson(jsonData);
-    //     console.log("geoJSON", geoJSON);
-
-    //     let geoNodes = L.geoJSON(geoJSON, {
-    //         filter: (feature) => {
-    //             return feature.geometry.type ===
-    //                     "Polygon" &&
-    //                 feature.properties.indoor ==
-    //                     "room";
-    //         },
-    //         style: function (feature) {
-    //             switch (
-    //                 feature.properties.building
-    //             ) {
-    //                 case "school":
-    //                     return { color: "#ff0000" };
-    //                 default:
-    //                     return { color: "#0000ff" };
-    //             }
-    //         },
-    //         onEachFeature: function (
-    //             feature,
-    //             layer,
-    //         ) {
-    //             layer.on("click", function (evt) {
-    //                 // Access the feature's properties
-    //                 var featureId = feature.id;
-    //                 console.log(
-    //                     $("#node-select").val(),
-    //                 );
-    //                 $("#node-select")
-    //                     .val(featureId)
-    //                     .trigger("change")
-    //                     .trigger("select2:select");
-    //             });
-    //         },
-    //     }).addTo(map);
-
-    //     $("#node-select").select2({
-    //         allowClear: true,
-    //         placeholder: "Izvēlieties telpu",
-    //         data: geoJSON.features.map((item) => {
-    //             return {
-    //                 id: item.id,
-    //                 text: // ${item.id}
-    //                     `${
-    //                         item.properties.name ??
-    //                             item.properties
-    //                                 .description ??
-    //                             item.properties
-    //                                 .indoor ??
-    //                             "?"
-    //                     }`,
-    //                 info: item,
-    //             };
-    //         }),
-    //     }).val(null).trigger("change");
-
-    //     function handleGeoJSONSelect(e) {
-    //         let selections =
-    //             $(e.target).select2("data") || [];
-
-    //         let ids = selections.map((s) => s.id);
-    //         let displayData = selections.map((s) =>
-    //             s.info
-    //         );
-    //         $("#json").text(
-    //             JSON.stringify(
-    //                 displayData,
-    //                 null,
-    //                 4,
-    //             ),
-    //         );
-    //         // geoNodes.clearLayers();
-    //         geoNodes.eachLayer(function (layer) {
-    //             //   console.log("Layer:", layer.feature.id, layer);
-    //             if (
-    //                 ids.includes(layer.feature.id)
-    //             ) {
-    //                 layer.setStyle({
-    //                     color: "#ff0000",
-    //                 });
-    //             } else {
-    //                 layer.setStyle({
-    //                     color: "#00ff00",
-    //                 });
-    //             }
-    //         });
-    //         // L.geoJSON(geojsonFeature).addTo(geoNodes)
-    //         console.log("Selected options:", ids);
-    //     }
-
-    //     $("#node-select").on(
-    //         "select2:select",
-    //         // "change",
-    //         // handleSelect,
-    //         handleGeoJSONSelect,
-    //     );
-
-    //     console.log("Document ready");
-    // });
 }

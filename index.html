@@ -18,13 +18,28 @@
 
       #content {
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         width: 100vw;
         height: 100vh;
+        font-size: 12px;
       }
-      #data {
-        flex: 20;
+
+      #content .select2-selection__placeholder,
+      #content .select2-results {
+        font-size: 20px;
       }
+
+      #content .leaflet-left .leaflet-control {
+          margin-top: 1vw;
+      }
+      #content .leaflet-touch .leaflet-bar button,
+      #content .leaflet-touch .leaflet-bar a {
+        width: 46px;
+        height: 46px;
+        line-height: 46px;
+      }
+
+
       #json {
         white-space: pre-wrap;
         font-family: monospace;
@@ -32,19 +47,15 @@
         padding: 10px;
       }
 
-      #map {
-        flex: 80;
-      }
-
       .info {
         width: 150px;
         padding: 6px 8px;
         font: 14px/16px Arial, Helvetica, sans-serif;
-        background: white;
         background: rgba(255, 255, 255, 1);
         box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         border-radius: 5px;
       }
+
     </style>
 
     <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -64,7 +75,10 @@
     <!-- <script src="https://cdn.jsdelivr.net/npm/leaflet-indoor@1.0.3/leaflet-indoor.min.js"></script> -->
     <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@1.3.0/src/easy-button.css">
     <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@1.3.0/src/easy-button.js"></script> -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+    >
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2.4.0/src/easy-button.min.css"
@@ -84,22 +98,20 @@
     <script
       src="https://cdn.jsdelivr.net/npm/osmtogeojson@3.0.0-beta.5/osmtogeojson.min.js"
     ></script>
-    <script lang="javascript"
-      src="script.js"  charset="UTF-8"
-    ></script>
+    <script lang="javascript" src="script.js" charset="UTF-8"></script>
   </head>
   <body>
     <script lang="javascript">
       $("document").ready(function () {
-       initMap();
+        initMap();
       });
     </script>
-    <div id="content"  style="background-color: rgb(212, 221, 212)">
+    <div id="content" style="background-color: rgb(212, 221, 212)">
       <div id="data">
-        <div style="background-color: darkgreen">
+        <div>
           <select id="node-select" style="width: 100%"></select>
         </div>
-        <div id="json" style="background-color: rgb(201, 233, 233)"></div>
+        <div id="json"></div>
       </div>
       <div id="map" style="background-color: rgb(249, 250, 235)"></div>
     </div>
