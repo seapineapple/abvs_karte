@@ -15,6 +15,32 @@ function prepareMap() {
         //   center: new L.LatLng(57.076142, 24.326563),
         //   zoom: 18,
     }).setView([57.076142, 24.326563], 22);
+        
+    var opts = {
+        lines: 13, // The number of lines to draw
+        length: 38, // The length of each line
+        width: 17, // The line thickness
+        radius: 45, // The radius of the inner circle
+        scale: 1, // Scales overall size of the spinner
+        corners: 1, // Corner roundness (0..1)
+        speed: 2, // Rounds per second
+        rotate: 0, // The rotation offset
+        animation: 'spinner-line-fade-quick', // The CSS animation name for the lines
+        direction: 1, // 1: clockwise, -1: counterclockwise
+        color: '#d1a9dd', // CSS color or array of colors
+        fadeColor: 'transparent', // CSS color or array of colors
+        top: '50%', // Top position relative to parent
+        left: '50%', // Left position relative to parent
+        shadow: '0 0 1px transparent', // Box-shadow for the lines
+        zIndex: 2000000000, // The z-index (defaults to 2e9)
+        className: 'spinner', // The CSS class to assign to the spinner
+        position: 'absolute', // Element positioning
+      };
+    
+    //   var target = document.getElementById('content');
+        var spinner = new Spinner(opts).spin($("#content")[0]);
+
+    // let spinner = new Spin.Spinner(opts).spin($("#content")[0]);
 
     L.easyButton("fa-home", function (btn, map) {
         map.setView([57.076142, 24.326563], 22);
@@ -33,7 +59,7 @@ function prepareMap() {
         },
     ).addTo(map);
 
-    return { osm, map };
+    return { osm, map, spinner };
 }
 
 const styles = {
@@ -67,8 +93,8 @@ var customIcon = L.icon({
 function mapData(data, mapCtx) {
     const layerMap = data["features"]
         .filter((feature) =>
-            Object.keys(styles).includes(feature.properties.indoor) ||
-            console.log("Excluded:", feature)
+            Object.keys(styles).includes(feature.properties.indoor)
+            // console.log("Excluded:", feature)
         )
         .sort((a, b) => a.properties.indoor.localeCompare(b.properties.indoor))
         .reduce((acc, feature) => {
@@ -100,7 +126,7 @@ function mapData(data, mapCtx) {
                 value.on("click", function (evt) {
                     // Access the feature's properties
                     var featureId = feature.id;
-                    console.log($("#node-select").val());
+                    // console.log($("#node-select").val());
                     $("#node-select")
                         .val(featureId)
                         .trigger("change")
@@ -112,7 +138,7 @@ function mapData(data, mapCtx) {
             if (!acc[key]) {
                 acc[key] = L.layerGroup();
                 //   acc[key].addTo(mapCtx.map);
-                if (key === "0") {
+                if (key === "1. stāvs") {
                     acc[key].addTo(mapCtx.map);
                 }
             }
@@ -122,7 +148,8 @@ function mapData(data, mapCtx) {
             return acc;
         }, {});
 
-    mapCtx.layerMap = layerMap;
+    mapCtx.layerMap = layerMap;    
+    mapCtx.spinner.stop();
     L.control.layers(layerMap, {}, { collapsed: false }).addTo(mapCtx.map);
 }
 
@@ -155,23 +182,6 @@ function handleGeoJSONSelect(e, mapCtx) {
             }
         }
     })
-
-    // geoNodes.clearLayers();
-    // geoNodes.eachLayer(function (layer) {
-    //     //   console.log("Layer:", layer.feature.id, layer);
-    //     if (
-    //         ids.includes(layer.feature.id)
-    //     ) {
-    //         layer.setStyle({
-    //             color: "#ff0000",
-    //         });
-    //     } else {
-    //         layer.setStyle({
-    //             color: "#00ff00",
-    //         });
-    //     }
-    // });
-    // console.log("Selected options:", ids);
 }
 
 function initMap() {
