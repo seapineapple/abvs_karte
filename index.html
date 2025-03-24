@@ -28,6 +28,10 @@
         height: 100vh;
       }
 
+      #node-select {
+        width: 100%
+      }
+      
       #content .leaflet-left .leaflet-control {
         margin-top: 1vw;
       }
@@ -95,15 +99,10 @@
     <script lang="javascript" src="script.js" charset="UTF-8"></script>
   </head>
   <body>
-    <script lang="javascript">
-      $("document").ready(function () {
-        initMap();
-      });
-    </script>
     <div id="content">
       <div id="data">
         <div>
-          <select id="node-select" style="width: 100%"></select>
+          <select id="node-select"></select>
         </div>
         <div id="json"></div>
       </div>
