@@ -3,7 +3,9 @@ function levelName(level) {
 }
 
 function prepareMap() {
-    let map = new L.Map("map").setView([57.076142, 24.326563], 20);
+    let homeLocation = [[57.076142, 24.326563], 19];
+
+    let map = new L.Map("map").setView(...homeLocation);
 
     let osm = new L.TileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -15,7 +17,7 @@ function prepareMap() {
     osm.addTo(map);        
 
     L.easyButton("fa-home", function (btn, map) {
-        map.setView([57.076142, 24.326563], 19);
+        map.setView(...homeLocation);
     }).addTo(map);
 
     L.easyButton("fa-crosshairs", function (btn, map) {
@@ -27,15 +29,10 @@ function prepareMap() {
 
 
 let styles = {
+    // base key styles
     room: {
         color: "black",
         fillColor: "#d195e5",
-        fillOpacity: 0.7,
-        strokeWidth: 1
-    },
-    roomSelected: {
-        color: "red",
-        fillColor: "#b439dd",
         fillOpacity: 0.7,
         strokeWidth: 1
     },
@@ -45,7 +42,24 @@ let styles = {
         fillOpacity: 0.2,
         strokeWidth: 1
     },
+    // selected object styles
+    roomSelected: {
+        color: "red",
+        // fillColor: "#b439dd",
+        // fillOpacity: 0.7,
+        strokeWidth: 1
+    },    
+    // room type specific styles
+    room__hall: {
+        fillColor: "#aea8dd",
+        fillOpacity: 0.4,
+    },
+    room__stairs: {
+        fillColor: "#4fa3af",
+        fillOpacity: 0.4,
+    }
 };
+styles["room__corridor"] = styles["room__hall"];
 // restaurant
 // kitchen
 // storage
@@ -59,15 +73,10 @@ let styles = {
 // lecture
 // technical
 // corridor
-// amphitheatr
-// ["hall", "corridor"].forEach( 
-//     (key) => {
-//         styles["room__" + key] = {
-//             // fillColor: "#b3efd8",
-//             fillOpacity: 0.4,
-//         }
-//     }
-// );
+// amphitheatre
+// library
+// laboratory
+// gym
 
 var customIcon = L.icon({
     iconUrl:"img/room_class.png",
@@ -89,8 +98,10 @@ function mapData(data, mapCtx) {
   
             let key = levelName(feature.properties.level);
 
-            // let style = { ...styles[feature.properties.indoor], ...styles[feature.properties.indoor + "__" + feature.properties.room] };
-            let style = styles[feature.properties.indoor];
+            let style = { 
+                ...styles.room,
+                ...styles["room__" + feature.properties.room] 
+            };            
 
             let value = L.geoJSON(feature, {
                 style,
@@ -100,12 +111,13 @@ function mapData(data, mapCtx) {
             });
 
             let name = feature.properties.name ??
-                feature.properties.description ??
+                feature.properties.room ??
                 feature.properties.indoor ?? "No name";
 
             if (feature.properties.indoor === "room") {
                 var opt = new Option(name, feature.id, false, false);
-                opt.dataset.description = feature.properties?.description || "Apraksts nav norādīts!";
+                opt.dataset.description = feature.properties?.description || "---";
+                opt.dataset.description2 = JSON.stringify(feature.properties);
                 opt.dataset.level = feature.properties.level;
 
                 var optgroup = $("#node-select optgroup[label='" + key + "']");
@@ -160,15 +172,22 @@ function handleGeoJSONSelect(e, mapCtx) {
     } 
 
     $("#json").text(selection?.element?.dataset?.description || "");
+    console.log("Selected:", selection?.element?.dataset?.description2);
     let roomId = selection?.id || null;
 
     mapCtx.map.eachLayer(function (layer) {
         if (layer?.feature?.properties?.indoor === "room") {
+            let roomType = layer.feature.properties.room;
+            let style = { 
+                ...styles.room, 
+                ...styles["room__" + roomType]
+            };
             if (roomId === layer.feature.id) {
-                layer.setStyle(styles.roomSelected);
+                let styleSelected = { style, ...styles.roomSelected, ...styles["roomSelected__" + roomType] };
+                layer.setStyle(styleSelected);
                 layer.bringToFront();
             } else {
-                layer.setStyle(styles.room);
+                layer.setStyle(style);
             }
         }
     })
