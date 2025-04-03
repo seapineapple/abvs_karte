@@ -3,19 +3,19 @@ function levelName(level) {
 }
 
 function prepareMap() {
-    let map = new L.Map("map").setView([57.076142, 24.326563], 22);
+    let map = new L.Map("map").setView([57.076142, 24.326563], 20);
 
     let osm = new L.TileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
-            maxZoom: 19,
+            maxZoom: 20,
             attribution: "Map data &copy; OpenStreetMap contributors",
         },
     );
     osm.addTo(map);        
 
     L.easyButton("fa-home", function (btn, map) {
-        map.setView([57.076142, 24.326563], 22);
+        map.setView([57.076142, 24.326563], 19);
     }).addTo(map);
 
     L.easyButton("fa-crosshairs", function (btn, map) {
@@ -25,7 +25,8 @@ function prepareMap() {
     return { osm, map };
 }
 
-const styles = {
+
+let styles = {
     room: {
         color: "black",
         fillColor: "#d195e5",
@@ -45,6 +46,28 @@ const styles = {
         strokeWidth: 1
     },
 };
+// restaurant
+// kitchen
+// storage
+// dressing
+// stairs
+// class
+// toilet
+// toilets
+// hall
+// office
+// lecture
+// technical
+// corridor
+// amphitheatr
+// ["hall", "corridor"].forEach( 
+//     (key) => {
+//         styles["room__" + key] = {
+//             // fillColor: "#b3efd8",
+//             fillOpacity: 0.4,
+//         }
+//     }
+// );
 
 var customIcon = L.icon({
     iconUrl:"img/room_class.png",
@@ -54,22 +77,29 @@ var customIcon = L.icon({
   });
 
 function mapData(data, mapCtx) {
-    const layerMap = data["features"]
+    console.log("Data:", data);
+
+    let layerMap = data["features"]
         .filter((feature) =>
+            // take only 'room' and 'level' features
             Object.keys(styles).includes(feature.properties.indoor)
-            // console.log("Excluded:", feature)
         )
-        .sort((a, b) => a.properties.indoor.localeCompare(b.properties.indoor))
+        .sort((a, b) => a.properties.indoor.localeCompare(b.properties.indoor)) // sort for proper layering on map
         .reduce((acc, feature) => {
-            const key = levelName(feature.properties.level);
-            const value = L.geoJSON(feature, {
-                style: styles[feature.properties.indoor],
+  
+            let key = levelName(feature.properties.level);
+
+            // let style = { ...styles[feature.properties.indoor], ...styles[feature.properties.indoor + "__" + feature.properties.room] };
+            let style = styles[feature.properties.indoor];
+
+            let value = L.geoJSON(feature, {
+                style,
                 pointToLayer: function (feature, latlng) {
                     return L.marker(latlng, {icon: customIcon});
                 },
             });
 
-            const name = feature.properties.name ??
+            let name = feature.properties.name ??
                 feature.properties.description ??
                 feature.properties.indoor ?? "No name";
 
@@ -83,8 +113,6 @@ function mapData(data, mapCtx) {
                     optgroup = $("<optgroup>").attr("label", key).appendTo("#node-select");
                 }
                 optgroup.append(opt);
-
-                // $("#node-select").append(opt);
 
                 value.on("click", function (evt) {
                     // Access the feature's properties
@@ -147,22 +175,23 @@ function handleGeoJSONSelect(e, mapCtx) {
 }
 
 function initMap() {
-    // Create the map
-
-    let mapCtx = prepareMap();
-
+    // Initialize the spinner
     var spinner = new Spinner({color: '#d1a9dd', length: 40, width: 15}).spin($("#content")[0]);
 
+    // Create the map, set the view and add the tile layer. Add nav buttons.
+    let mapCtx = prepareMap();
+
+    // Initialize the select2 plugin
     $("#node-select").select2({
         allowClear: true,
         placeholder: "Izvēlieties telpu",
     });
-
     $("#node-select").on(
         "select2:select",
         (e) => handleGeoJSONSelect(e, mapCtx),
     );
 
+    // load the data
     let bbox =
         "(57.075390947519935,24.324722848528037,57.076860455954716,24.328135102582106)";
 
@@ -178,19 +207,17 @@ function initMap() {
                 `[out:json][timeout:25];
       (
         way["indoor"]${bbox};
-          way["building"="school"]${bbox};
+        way["building"="school"]${bbox};
       );
       out geom;`,
             ),
         },
     )
         .then((response) => response.json())
-        .then((data) => osmtogeojson(data))
-        .then((data) => mapData(data, mapCtx))
+        .then((responseAsJson) => osmtogeojson(responseAsJson))
+        .then((geoJson) => mapData(geoJson, mapCtx))
         .catch((error) => console.error("Error:", error))
         .finally(() => spinner.stop());
 }
 
-$("document").ready(function () {
-    initMap();
-});
+$("document").ready( initMap );
